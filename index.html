@@ -1012,34 +1012,33 @@ function fmt(n){ if(!n) return '-'; if(n>=100000000) return (n/100000000).toFixe
 function fmtSubs(n){ if(!n) return '-'; if(n>=1000000) return (n/1000000).toFixed(1)+'M'; if(n>=10000) return (n/10000).toFixed(1)+'만'; return n.toLocaleString(); }
 
 // ═══════════════════════════════════════════════
-// Claude API - XMLHttpRequest 방식
+// Claude API - Cloudflare Worker 프록시 경유
 // ═══════════════════════════════════════════════
-function callClaude(messages, systemPrompt='', maxTokens=8000){
-  return new Promise((resolve, reject) => {
-    if(!G.claudeKey){ reject(new Error('Claude API 키가 없어요')); return; }
-    const body = {model:'claude-sonnet-4-20250514', max_tokens:maxTokens, messages};
-    if(systemPrompt) body.system = systemPrompt;
+async function callClaude(messages, systemPrompt='', maxTokens=8000){
+  if(!G.claudeKey) throw new Error('Claude API 키가 없어요');
+  const body = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: maxTokens,
+    messages
+  };
+  if(systemPrompt) body.system = systemPrompt;
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', 'https://api.anthropic.com/v1/messages');
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('x-api-key', G.claudeKey);
-    xhr.setRequestHeader('anthropic-version', '2023-06-01');
-    xhr.setRequestHeader('anthropic-dangerous-direct-browser-calls', 'true');
-
-    xhr.onload = function(){
-      try{
-        const d = JSON.parse(xhr.responseText);
-        if(xhr.status !== 200){
-          reject(new Error('Claude 오류: ' + (d.error?.message || xhr.status)));
-          return;
-        }
-        resolve(d.content[0].text);
-      }catch(e){ reject(e); }
-    };
-    xhr.onerror = function(){ reject(new Error('네트워크 오류 - API 키를 확인해주세요')); };
-    xhr.send(JSON.stringify(body));
+  const res = await fetch('https://allinone-proxy.junghun3427.workers.dev', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': G.claudeKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify(body)
   });
+
+  if(!res.ok){
+    const e = await res.json().catch(()=>({}));
+    throw new Error('Claude 오류: ' + (e.error?.message || res.status));
+  }
+  const d = await res.json();
+  return d.content[0].text;
 }
 
 // ═══════════════════════════════════════════════
