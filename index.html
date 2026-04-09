@@ -1052,20 +1052,49 @@ async function generateScript(){
   document.getElementById('script-loading').style.display='flex';
   document.getElementById('script-result').style.display='none';
   try{
-    let sys=`당신은 대한민국 최고의 유튜브 대본 작가입니다. 
-시청자가 끝까지 보게 만드는 강력한 스토리텔링으로 대본을 작성합니다.
-반드시 9,000자 내외로 작성하세요.
-AI가 쓴 것처럼 느껴지면 절대 안 됩니다. 사람이 말하듯, 감정이 묻어나는 문체로 작성하세요.
-뉴스 리포트가 아닌 친구가 이야기해주는 느낌으로 작성하세요.`;
-    if(benchmark) sys+=`\n\n아래 말투/어투를 그대로 유지하세요:\n---\n${benchmark}\n---`;
-    const userMsg=`주제: ${topic}\n${G.selectedVideo?`참고 영상: ${G.selectedVideo.title}`:''}\n${instructions?`추가 지시: ${instructions}`:''}\n\n9,000자 내외 유튜브 대본을 작성해주세요. 순수 대본만 작성하세요.`;
+    let sys=`당신은 대한민국 최고의 유튜브 대본 작가입니다.
+
+[절대 규칙 - 반드시 지켜야 함]
+1. 반드시 8,500자 ~ 9,500자 사이로 작성하세요. 이보다 짧으면 절대 안 됩니다.
+2. 글자 수가 부족하면 각 파트를 더 풍부하게, 더 자세하게, 더 많은 예시와 사례를 넣어서 채우세요.
+3. AI가 쓴 것처럼 느껴지면 절대 안 됩니다.
+4. 뉴스 리포트, 보고서 형식 절대 금지.
+5. 친구가 흥분해서 이야기해주는 느낌, 감정이 넘치는 문체로 작성하세요.
+6. 짧은 문장과 긴 문장을 섞어서 리듬감 있게 작성하세요.
+7. 중간중간 시청자에게 직접 말 거는 문장 넣으세요. ("여러분", "아시죠?", "생각해보세요" 등)
+8. 인트로(강렬한 훅 - 최소 500자) → 본론 여러 파트(각 파트 최소 1,000자) → 마무리(최소 500자) 구조로 작성하세요.
+9. 대본 외에 어떤 설명, 메타 텍스트, 글자수 표시도 절대 포함하지 마세요. 순수 대본만 작성하세요.`;
+
+    if(benchmark){
+      sys+=`\n\n[벤치마킹 말투 - 이 말투와 어투를 반드시 그대로 유지하세요. 이게 가장 중요합니다]\n아래 샘플의 말투, 어투, 문장 구조, 호흡, 단어 선택 방식을 그대로 따라하세요:\n---\n${benchmark}\n---`;
+    }
+
+    const userMsg=`주제: ${topic}
+${G.selectedVideo?`참고 영상 제목: ${G.selectedVideo.title}`:''}
+${instructions?`추가 지시사항: ${instructions}`:''}
+
+위 주제로 유튜브 대본을 작성하세요.
+
+[필수 조건]
+- 반드시 8,500자 ~ 9,500자 사이
+- 순수 대본만 (글자수, 설명 등 절대 포함 금지)
+- 파트 구성: 인트로(훅) → 1부 → 2부 → 3부 → 4부 → 5부 → 마무리
+- 각 파트마다 충분한 분량으로 작성
+- 중간중간 시청자에게 직접 말 걸기`;
+
     const result=await callClaude([{role:'user',content:userMsg}],sys,8000);
     G.script=result;
     document.getElementById('script-output').textContent=result;
     document.getElementById('script-char-count').textContent=result.length.toLocaleString()+'자';
     document.getElementById('script-result').style.display='block';
     document.getElementById('prompts-script-input').value=result;
-    toast('✅ 대본 완성! '+result.length.toLocaleString()+'자');
+
+    // 9000자 미만이면 경고
+    if(result.length < 8000){
+      toast('⚠️ ' + result.length.toLocaleString() + '자 — 다시 생성해보세요!', 'error');
+    } else {
+      toast('✅ 대본 완성! '+result.length.toLocaleString()+'자');
+    }
   }catch(e){toast('❌ '+e.message,'error');}
   finally{document.getElementById('script-loading').style.display='none';}
 }
