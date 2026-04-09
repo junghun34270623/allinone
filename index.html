@@ -509,7 +509,7 @@ tr:hover td{background:var(--rowh)}
      TAB 3: 대본 생성
 ━━━━━━━━━━━━━━━━━━━━ -->
 <div id="tab-script" class="tab-content">
-  <div class="step-guide">✍️ 선택한 영상 정보를 기반으로 <span>9,000자 대본</span>을 생성해요. 벤치마킹 말투를 넣으면 더 자연스러워요.</div>
+  <div class="step-guide">✍️ 선택한 영상 정보를 기반으로 <span>8,500~9,500자 대본</span>을 생성해요. 1차 생성 후 자동 검수를 거쳐 최종본이 나와요.</div>
 
   <div class="section-title">영상 주제</div>
   <input class="input-box mb16" id="script-topic" placeholder="예: 미국 관세 전쟁이 한국 경제에 미치는 영향" style="width:100%"/>
@@ -524,7 +524,7 @@ tr:hover td{background:var(--rowh)}
   <div class="section-title">추가 지시사항 (선택)</div>
   <input class="input-box mb16" id="script-instructions" placeholder="예: 20~30대 직장인 타겟, 희망적 마무리" style="width:100%"/>
 
-  <button class="btn btn-danger btn-full" onclick="generateScript()">🤖 9,000자 대본 생성</button>
+  <button class="btn btn-danger btn-full" onclick="generateScript()">🤖 8,500~9,500자 대본 생성 (자동 검수)</button>
 
   <div id="script-loading" style="display:none" class="loading-wrap mt16">
     <div class="spinner"></div><span id="script-loading-msg">Claude가 대본을 작성 중이에요...</span>
@@ -1042,23 +1042,26 @@ async function callClaude(messages, systemPrompt='', maxTokens=8000){
 }
 
 // ═══════════════════════════════════════════════
-// 대본 생성
+// 대본 생성 (1차 생성 → 검수 → 필요시 보정 → 최종본)
 // ═══════════════════════════════════════════════
 async function generateScript(){
   const topic=document.getElementById('script-topic').value.trim();
   if(!topic){toast('주제를 입력해주세요','error');return;}
   const benchmark=document.getElementById('benchmark-text').value.trim();
   const instructions=document.getElementById('script-instructions').value.trim();
-  document.getElementById('script-loading').style.display='flex';
+  const loadingEl=document.getElementById('script-loading');
+  const loadingMsg=document.getElementById('script-loading-msg');
+  loadingEl.style.display='flex';
   document.getElementById('script-result').style.display='none';
+
   try{
     let sys=`당신은 대한민국 최고의 유튜브 대본 작가입니다.
 
 [절대 규칙 - 반드시 지켜야 함]
-1. 반드시 8,500자 ~ 9,500자 사이로 작성하세요. 이보다 짧으면 절대 안 됩니다.
+1. 반드시 8,500자 ~ 9,500자 사이로 작성하세요. 이보다 짧거나 길면 절대 안 됩니다.
 2. 글자 수가 부족하면 각 파트를 더 풍부하게, 더 자세하게, 더 많은 예시와 사례를 넣어서 채우세요.
 3. AI가 쓴 것처럼 느껴지면 절대 안 됩니다.
-4. 뉴스 리포트, 보고서 형식 절대 금지.
+4. 뉴스 리포트, 보고서 형식 절대 금지. **볼드**, ## 헤딩 등 마크다운 서식 절대 금지.
 5. 친구가 흥분해서 이야기해주는 느낌, 감정이 넘치는 문체로 작성하세요.
 6. 짧은 문장과 긴 문장을 섞어서 리듬감 있게 작성하세요.
 7. 중간중간 시청자에게 직접 말 거는 문장 넣으세요. ("여러분", "아시죠?", "생각해보세요" 등)
@@ -1078,25 +1081,77 @@ ${instructions?`추가 지시사항: ${instructions}`:''}
 [필수 조건]
 - 반드시 8,500자 ~ 9,500자 사이
 - 순수 대본만 (글자수, 설명 등 절대 포함 금지)
+- **볼드**, ## 헤딩, --- 구분선 등 마크다운 서식 절대 사용 금지
 - 파트 구성: 인트로(훅) → 1부 → 2부 → 3부 → 4부 → 5부 → 마무리
 - 각 파트마다 충분한 분량으로 작성
 - 중간중간 시청자에게 직접 말 걸기`;
 
-    const result=await callClaude([{role:'user',content:userMsg}],sys,8000);
-    G.script=result;
-    document.getElementById('script-output').textContent=result;
-    document.getElementById('script-char-count').textContent=result.length.toLocaleString()+'자';
-    document.getElementById('script-result').style.display='block';
-    document.getElementById('prompts-script-input').value=result;
+    // ── 1단계: 1차 대본 생성 ──
+    loadingMsg.textContent='📝 1단계: 1차 대본 생성 중...';
+    const draft=await callClaude([{role:'user',content:userMsg}],sys,8000);
+    const draftLen=draft.length;
 
-    // 9000자 미만이면 경고
-    if(result.length < 8000){
-      toast('⚠️ ' + result.length.toLocaleString() + '자 — 다시 생성해보세요!', 'error');
+    // ── 2단계: 검수 ──
+    loadingMsg.textContent=`🔍 2단계: 검수 중... (1차 대본 ${draftLen.toLocaleString()}자)`;
+
+    const MIN_CHAR=8500;
+    const MAX_CHAR=9500;
+
+    if(draftLen >= MIN_CHAR && draftLen <= MAX_CHAR){
+      // 범위 안이면 바로 최종본
+      loadingMsg.textContent='✅ 검수 통과! 최종본 완성';
+      G.script=draft;
+      showScriptResult(draft);
+      toast('✅ 검수 통과! 최종 대본 '+draftLen.toLocaleString()+'자');
     } else {
-      toast('✅ 대본 완성! '+result.length.toLocaleString()+'자');
+      // ── 3단계: 보정 요청 ──
+      let direction='';
+      if(draftLen < MIN_CHAR){
+        const need=MIN_CHAR-draftLen;
+        direction=`현재 대본이 ${draftLen}자로 ${need}자 부족합니다. 각 파트의 내용을 더 풍부하게 보강하고, 구체적인 예시·수치·에피소드를 추가하여 반드시 8,500자 ~ 9,500자 사이가 되도록 늘려주세요.`;
+        loadingMsg.textContent=`✏️ 3단계: ${need}자 부족 → 보강 중...`;
+      } else {
+        const over=draftLen-MAX_CHAR;
+        direction=`현재 대본이 ${draftLen}자로 ${over}자 초과했습니다. 반복되는 내용, 불필요한 수식어, 중복 표현을 줄여서 반드시 8,500자 ~ 9,500자 사이가 되도록 줄여주세요. 핵심 내용과 말투는 절대 변경하지 마세요.`;
+        loadingMsg.textContent=`✏️ 3단계: ${over}자 초과 → 압축 중...`;
+      }
+
+      const reviseMsg=`아래는 1차로 작성한 대본입니다.
+
+${direction}
+
+[필수 조건]
+- 최종 대본만 출력 (글자수, 설명, 메타 텍스트 절대 포함 금지)
+- **볼드**, ## 헤딩 등 마크다운 서식 절대 금지
+- 말투·어투·문체는 1차 대본과 동일하게 유지
+- 반드시 8,500자 ~ 9,500자 사이
+
+1차 대본:
+---
+${draft}
+---`;
+
+      const finalDraft=await callClaude([{role:'user',content:reviseMsg}],sys,8000);
+      const finalLen=finalDraft.length;
+
+      G.script=finalDraft;
+      showScriptResult(finalDraft);
+
+      if(finalLen >= MIN_CHAR && finalLen <= MAX_CHAR){
+        toast('✅ 보정 완료! 최종 대본 '+finalLen.toLocaleString()+'자');
+      } else {
+        toast('⚠️ 최종 '+finalLen.toLocaleString()+'자 — 범위에서 약간 벗어났어요. 다시 시도해보세요.','error');
+      }
     }
   }catch(e){toast('❌ '+e.message,'error');}
-  finally{document.getElementById('script-loading').style.display='none';}
+  finally{loadingEl.style.display='none';}
+}
+
+function showScriptResult(text){
+  document.getElementById('script-output').textContent=text;
+  document.getElementById('script-char-count').textContent=text.length.toLocaleString()+'자';
+  document.getElementById('script-result').style.display='block';
+  document.getElementById('prompts-script-input').value=text;
 }
 
 function goToPrompts(){showTab('prompts');document.getElementById('prompts-script-input').value=G.script;}
