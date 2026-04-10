@@ -1023,7 +1023,7 @@ async function callClaude(messages, systemPrompt='', maxTokens=8000){
   };
   if(systemPrompt) body.system = systemPrompt;
 
-  const res = await fetch('https://allinone-proxy.junghun3427.workers.dev', {
+  const res = await fetch('https://allinone-proxy.junghun3427.workers.dev/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
