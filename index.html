@@ -1014,7 +1014,7 @@ function fmtSubs(n){ if(!n) return '-'; if(n>=1000000) return (n/1000000).toFixe
 // ═══════════════════════════════════════════════
 // Claude API - Cloudflare Worker 프록시 경유
 // ═══════════════════════════════════════════════
-async function callClaude(messages, systemPrompt='', maxTokens=8000){
+async function callClaude(messages, systemPrompt='', maxTokens=4000){
   if(!G.claudeKey) throw new Error('Claude API 키가 없어요');
   const body = {
     model: 'claude-sonnet-4-5',
