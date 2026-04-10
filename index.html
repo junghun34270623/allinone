@@ -1014,7 +1014,7 @@ function fmtSubs(n){ if(!n) return '-'; if(n>=1000000) return (n/1000000).toFixe
 // ═══════════════════════════════════════════════
 // Claude API - Cloudflare Worker 프록시 경유
 // ═══════════════════════════════════════════════
-async function callClaude(messages, systemPrompt='', maxTokens=4000){
+async function callClaude(messages, systemPrompt='', maxTokens=8000){
   if(!G.claudeKey) throw new Error('Claude API 키가 없어요');
   const body = {
     model: 'claude-sonnet-4-5',
@@ -1055,7 +1055,7 @@ async function generateScript(){
   document.getElementById('script-result').style.display='none';
 
   try{
-    let sys=`당신은 유튜브 대본 작가입니다. 반드시 8,500~9,500자 사이로 작성하세요. 마크다운 서식 금지. 순수 대본만 작성하세요.`;
+    let sys=`당신은 대한민국 최고의 유튜브 대본 작가입니다.
 
 [절대 규칙 - 반드시 지켜야 함]
 1. 반드시 8,500자 ~ 9,500자 사이로 작성하세요. 이보다 짧거나 길면 절대 안 됩니다.
