@@ -1072,8 +1072,15 @@ async function generateScript(){
 
     let full=(p1.replace('[1/3끝]','')+'\n\n'+p2.replace('[2/3끝]','')+'\n\n'+p3).trim();
 
-    // 8,500자 미만이면 자동 보완
-    if(full.length<8500){
+    // 글자수 자동 조정
+    if(full.length>9500){
+      // 너무 길면 자르기
+      let cut=full.substring(0,9300);
+      const lastEnd=Math.max(cut.lastIndexOf('다.'),cut.lastIndexOf('요.'),cut.lastIndexOf('!'),cut.lastIndexOf('?'));
+      if(lastEnd>8500) cut=cut.substring(0,lastEnd+1);
+      full=cut;
+    } else if(full.length<8500){
+      // 너무 짧으면 보완
       loadingMsg.textContent=`📝 보완 중... (현재 ${full.length.toLocaleString()}자)`;
       const need=9000-full.length;
       const extra=await callClaude([{role:'user',content:`아래 대본에 자연스럽게 이어지는 내용을 ${need}자 이상 추가로 작성하세요. 마크다운 금지. 같은 말투 유지.\n\n---\n${full.slice(-500)}\n---`}],sys,4000);
