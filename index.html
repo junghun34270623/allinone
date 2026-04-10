@@ -1070,7 +1070,7 @@ ${instructions?`지시사항: ${instructions}`:''}
 - 친구가 흥분해서 이야기하는 말투`;
 
     loadingMsg.textContent='📝 대본 생성 중... (1~2분 소요)';
-    const draft=await callClaude([{role:'user',content:userMsg}],sys,4000);
+    const draft=await callClaude([{role:'user',content:userMsg}],sys,8000);
     G.script=draft;
     showScriptResult(draft);
     toast('✅ 대본 생성 완료! '+draft.length.toLocaleString()+'자');
@@ -1110,7 +1110,7 @@ ${script.substring(0,6000)}
 
 JSON 형식:
 {"prompts":[{"num":1,"sentence_ko":"대본 문장","prompt_en":"English prompt","prompt_ko":"한국어 번역","type":"video"},{"num":16,"sentence_ko":"대본 문장","prompt_en":"English prompt","prompt_ko":"한국어 번역","type":"image"}]}`;
-    const raw=await callClaude([{role:'user',content:userMsg}],sys,4000);
+    const raw=await callClaude([{role:'user',content:userMsg}],sys,8000);
     const clean=raw.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(clean);
     const prompts=parsed.prompts||[];
